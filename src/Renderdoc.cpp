@@ -1,6 +1,7 @@
 #include "Renderdoc.h"
 
 #include <Windows.h>
+#include <cstdint>
 #include <memory>
 #include <renderdoc_app.h>
 #include <sstream>
@@ -65,6 +66,11 @@ void Renderdoc::SetCaptureTitle(const std::string &title) {
     loader->API()->SetCaptureTitle(title.c_str());
 }
 
+void Renderdoc::DiscardFrameCapture() {
+  if (loader && loader->IsLoaded())
+    loader->API()->DiscardFrameCapture(nullptr, nullptr);
+}
+
 void Renderdoc::TriggerCapture() {
   if (loader && loader->IsLoaded())
     loader->API()->TriggerCapture();
@@ -93,11 +99,25 @@ std::optional<std::string> Renderdoc::GetLastCapturePath() {
   return std::nullopt;
 }
 
+bool Renderdoc::ShowReplayUI() {
+  if (loader && loader->IsLoaded())
+    return loader->API()->ShowReplayUI() != 0;
+
+  return false;
+}
+
 bool Renderdoc::LaunchReplayUI(const std::string &capturePath) {
   if (loader && loader->IsLoaded())
     return loader->API()->LaunchReplayUI(
                1, capturePath.empty() ? nullptr : capturePath.c_str()) != 0;
 
+  return false;
+}
+
+bool Renderdoc::IsFrameCapturing() {
+  if (loader && loader->IsLoaded()) {
+    return loader->API()->IsFrameCapturing();
+  }
   return false;
 }
 
@@ -111,6 +131,28 @@ std::string Renderdoc::GetVersionString() {
   }
 
   return {};
+}
+
+uint32_t Renderdoc::GetOverlayMask() {
+  if (loader && loader->IsLoaded()) {
+    return loader->API()->GetOverlayBits();
+  }
+  return 0;
+}
+
+void Renderdoc::EnableOverlay(bool enable) {
+  if (loader && loader->IsLoaded()) {
+    if (enable) {
+      loader->API()->MaskOverlayBits(
+          RENDERDOC_OverlayBits::eRENDERDOC_Overlay_All,
+          RENDERDOC_OverlayBits::eRENDERDOC_Overlay_Enabled);
+    } else {
+      loader->API()->MaskOverlayBits(
+          RENDERDOC_OverlayBits::eRENDERDOC_Overlay_All &
+              ~RENDERDOC_OverlayBits::eRENDERDOC_Overlay_Enabled,
+          RENDERDOC_OverlayBits::eRENDERDOC_Overlay_None);
+    }
+  }
 }
 
 void Renderdoc::SetOption_APIValidation(bool enable) {
@@ -138,5 +180,15 @@ void Renderdoc::SetOption_VSync(bool enable) {
   if (loader && loader->IsLoaded()) {
     loader->API()->SetCaptureOptionU32(eRENDERDOC_Option_AllowVSync,
                                        enable ? 1 : 0);
+  }
+}
+
+void Renderdoc::SetCaptureKeys(const std::vector<uint32_t> &keys) {
+  if (loader && loader->IsLoaded() && !keys.empty()) {
+    // RENDERDOC_InputButton captureKeys[] = {eRENDERDOC_Key_F11};
+    // loader->API()->SetCaptureKeys(captureKeys, 1);
+
+    loader->API()->SetCaptureKeys((RENDERDOC_InputButton *)keys.data(),
+                                  (int)keys.size());
   }
 }

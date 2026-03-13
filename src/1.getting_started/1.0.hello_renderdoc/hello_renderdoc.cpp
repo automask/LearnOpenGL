@@ -236,7 +236,15 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action,
                   int mods) {
   if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
     g_CaptureTrigger = true;
-    // RenderdocHelper::TriggerCapture();
+    // Renderdoc::TriggerCapture();
+  }
+
+  if (key == GLFW_KEY_G && action == GLFW_PRESS) {
+    static bool has_show = Renderdoc::GetOverlayMask() != 0;
+    has_show = !has_show;
+
+    // 可以动态控制显示
+    Renderdoc::EnableOverlay(has_show);
   }
 }
 
