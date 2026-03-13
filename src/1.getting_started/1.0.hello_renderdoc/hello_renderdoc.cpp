@@ -10,6 +10,7 @@
 #include <GLFW/glfw3native.h>
 
 //
+#include "Renderdoc.h"
 #include <Windows.h>
 #include <memory>
 #include <renderdoc_app.h>
@@ -39,112 +40,19 @@ const char *fragmentShaderSource =
     "   FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
     "}\n\0";
 
-static void *GetGLContextPtr(GLFWwindow *window) {
-  if (!window)
-    return nullptr;
-
-  // Windows: 获取当前线程的 HGLRC
-  return wglGetCurrentContext();
-
-  return nullptr;
-}
-
 static HWND g_hwnd = nullptr;
 
 static void DebugBox(const char *message) {
   MessageBoxA(g_hwnd, message, "Debug", MB_OK | MB_ICONINFORMATION);
 }
 
-class RenderdocHelper {
-public:
-  static bool Init() {
-    loader = std::make_unique<Loader>();
-    return loader->IsLoaded();
-  }
-
-  static void StartCapture() {
-    if (loader && loader->IsLoaded())
-      loader->GetAPI()->StartFrameCapture(NULL, NULL);
-  }
-
-  static void EndCapture() {
-    if (loader && loader->IsLoaded())
-      loader->GetAPI()->EndFrameCapture(NULL, NULL);
-  }
-
-  static bool TriggerCapture() {
-    if (loader && loader->IsLoaded()) {
-      loader->GetAPI()->TriggerCapture();
-      return true;
-    }
-
-    return false;
-  }
-
-  static bool TriggerMultiFrameCapture(uint32_t numFrames) {
-    if (loader && loader->IsLoaded()) {
-      loader->GetAPI()->TriggerMultiFrameCapture(numFrames);
-      return true;
-    }
-
-    return false;
-  }
-
-  static void SetCaptureTitle(const std::string &title) {
-    if (loader && loader->IsLoaded())
-      loader->GetAPI()->SetCaptureTitle(title.c_str());
-  }
-
-  static void SetActiveWindow(void *device, void *wndHandle) {
-    if (loader && loader->IsLoaded())
-      loader->GetAPI()->SetActiveWindow(device, wndHandle);
-  }
-
-  static void SetActiveWindow(GLFWwindow *window) {
-    if (loader && loader->IsLoaded()) {
-      void *device = GetGLContextPtr(window);
-      void *wndHandle = glfwGetWin32Window(window);
-
-      if (!device) {
-        DebugBox("[RenderDoc] Failed to get GL context");
-
-        return;
-      }
-
-      loader->GetAPI()->SetActiveWindow(device, wndHandle);
-    }
-  }
-
-private:
-  class Loader {
-  public:
-    Loader() {
-      HMODULE mod = LoadLibraryA("C:\\Program Files\\RenderDoc\\renderdoc.dll");
-      if (mod) {
-        pfn_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
-        if (pfn_GetAPI) {
-          pfn_GetAPI(eRENDERDOC_API_Version_1_1_2, (void **)&_api);
-        }
-      }
-    }
-
-    bool IsLoaded() const { return _api != nullptr; }
-    RENDERDOC_API_1_1_2 *GetAPI() { return _api; }
-
-  private:
-    RENDERDOC_API_1_1_2 *_api;
-    pRENDERDOC_GetAPI pfn_GetAPI;
-  };
-
-  static std::unique_ptr<Loader> loader;
-};
-
-std::unique_ptr<RenderdocHelper::Loader> RenderdocHelper::loader = nullptr;
 static bool g_CaptureTrigger = false;
 
 int main() {
   // 在创建窗口之前初始化RenderDoc，以确保在窗口创建时能够正确设置捕获窗口
-  RenderdocHelper::Init();
+  if (!Renderdoc::Init()) {
+    DebugBox("RenderDoc initialized failed...");
+  }
 
   // glfw: initialize and configure
   // ------------------------------
@@ -181,7 +89,8 @@ int main() {
   }
 
   // 在加载GL之后，调用GL命令之前，设置RenderDoc的捕获窗口
-  RenderdocHelper::SetActiveWindow(window);
+  Renderdoc::SetActiveOpenGLWindow(glfwGetWin32Window(window));
+
   // build and compile our shader program
   // ------------------------------------
   // vertex shader
@@ -266,8 +175,8 @@ int main() {
     processInput(window);
 
     if (g_CaptureTrigger) {
-      RenderdocHelper::StartCapture();
-      RenderdocHelper::SetCaptureTitle("Hello Triangle Capture");
+      Renderdoc ::SetCaptureTitle("Hello Triangle Capture");
+      Renderdoc ::StartCapture();
     }
 
     // render
@@ -288,7 +197,14 @@ int main() {
     // -------------------------------------------------------------------------------
 
     if (g_CaptureTrigger) {
-      RenderdocHelper::EndCapture();
+      Renderdoc::EndCapture();
+
+      if (auto path = Renderdoc::GetLastCapturePath()) {
+        Renderdoc::LaunchReplayUI(*path);
+
+        std::cout << "Opening: " << *path << std::endl;
+      }
+
       g_CaptureTrigger = false;
     }
 
