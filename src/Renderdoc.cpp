@@ -6,10 +6,38 @@
 #include <renderdoc_app.h>
 #include <sstream>
 
+static bool GetRegistryValue(const wchar_t *subKey, std::wstring &outValue) {
+  HKEY hKey;
+  wchar_t value[260];
+  DWORD valueSize = sizeof(value);
+
+  if (RegOpenKeyExW(HKEY_CLASSES_ROOT, subKey, 0, KEY_READ, &hKey) ==
+      ERROR_SUCCESS) {
+    if (RegQueryValueEx(hKey, NULL, NULL, NULL, (LPBYTE)value, &valueSize) ==
+        ERROR_SUCCESS) {
+      outValue = value;
+      return true;
+    }
+    RegCloseKey(hKey);
+  }
+
+  return false;
+}
+
 class Loader {
 public:
   Loader() {
     HMODULE mod = LoadLibraryA("C:\\Program Files\\RenderDoc\\renderdoc.dll");
+
+    if (!mod) {
+      // 需要开启 UNICODE _UNICODE
+      std::wstring renderDocPath;
+      if (GetRegistryValue(
+              L"CLSID\\{5D6BF029-A6BA-417A-8523-120492B1DCE3}\\InprocServer32",
+              renderDocPath))
+        mod = LoadLibraryW(renderDocPath.c_str());
+    }
+
     if (mod) {
       pfn_GetAPI = (pRENDERDOC_GetAPI)GetProcAddress(mod, "RENDERDOC_GetAPI");
       if (pfn_GetAPI) {
@@ -22,8 +50,8 @@ public:
   RENDERDOC_API_1_1_2 *API() { return api; }
 
 private:
-  RENDERDOC_API_1_1_2 *api;
-  pRENDERDOC_GetAPI pfn_GetAPI;
+  RENDERDOC_API_1_1_2 *api = nullptr;
+  pRENDERDOC_GetAPI pfn_GetAPI = nullptr;
 };
 
 static std::unique_ptr<Loader> loader = nullptr;
@@ -106,10 +134,25 @@ bool Renderdoc::ShowReplayUI() {
   return false;
 }
 
+// 只需启动一次，不然启动多个
 bool Renderdoc::LaunchReplayUI(const std::string &capturePath) {
-  if (loader && loader->IsLoaded())
-    return loader->API()->LaunchReplayUI(
-               1, capturePath.empty() ? nullptr : capturePath.c_str()) != 0;
+  if (loader && loader->IsLoaded()) {
+    static bool once = true;
+    if (once) {
+      bool ret =
+          loader->API()->LaunchReplayUI(
+              1, capturePath.empty() ? nullptr : capturePath.c_str()) != 0;
+
+      if (ret) {
+        // 成功就关闭
+        once = false;
+        // !!!rdc自己关闭了，就没办法了
+        // 如果能够检测到连接的rdc就可以处理
+      }
+
+      return ret;
+    }
+  }
 
   return false;
 }

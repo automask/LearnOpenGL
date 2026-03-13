@@ -200,6 +200,7 @@ add_library(GLAD "src/glad.c")
 set(LIBS ${LIBS} GLAD)
 
 add_library(Renderdoc "src/Renderdoc.cpp")
+target_compile_definitions(Renderdoc PRIVATE UNICODE _UNICODE)
 set(LIBS ${LIBS} Renderdoc)
 
 macro(makeLink src dest target)
