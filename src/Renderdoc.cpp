@@ -59,6 +59,10 @@ static std::unique_ptr<Loader> loader = nullptr;
 // 在创建窗口之前初始化RenderDoc，以确保在窗口创建时能够正确设置捕获窗口
 bool Renderdoc::Init() {
   loader = std::make_unique<Loader>();
+
+  // F12在调试模式键冲突|改成Home键
+  Renderdoc::SetCaptureKeys({eRENDERDOC_Key_Home});
+
   return loader && loader->IsLoaded();
 }
 

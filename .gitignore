@@ -3,3 +3,6 @@ bin/
 build/
 out/
 .cache/
+
+_deps/
+_dev/
