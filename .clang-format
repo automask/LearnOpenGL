@@ -1,0 +1,18 @@
+---
+# Microsoft Google LLVM Mozilla Chromium
+BasedOnStyle: Google
+---
+Language: Cpp
+AccessModifierOffset: -4
+AlignAfterOpenBracket: true
+# 命名空间缩进
+NamespaceIndentation: All
+TabWidth: 4
+# 缩进宽度
+IndentWidth: 4
+# 大括号的换行规则
+BreakBeforeBraces: Allman
+# 每行字符的长度
+ColumnLimit: 150
+# 注释对齐
+AlignTrailingComments: true

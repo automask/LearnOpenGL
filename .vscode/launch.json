@@ -1,0 +1,25 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        // --------------------------------------------------------------
+        {
+            // ctrl + F5|Cmake Debug
+            "name": "cpp_cmake_launch",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${command:cmake.launchTargetDirectory}",
+            "environment": [
+                {
+                    "name": "PATH",
+                    // 使用系统环境变量${env:PATH}
+                    "value": "${env:PATH};${command:cmake.launchTargetDirectory}"
+                },
+            ],
+            "console": "integratedTerminal", // 方便输入integratedTerminal
+            // "console": "externalTerminal",
+        }
+    ]
+}

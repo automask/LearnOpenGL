@@ -72,7 +72,6 @@ set(CHAPTERS
 )
 
 set(1.getting_started
-    1.0.hello_renderdoc
     1.1.hello_window
     1.2.hello_window_clear
     2.1.hello_triangle
@@ -199,10 +198,6 @@ set(LIBS ${LIBS} STB_IMAGE)
 add_library(GLAD "src/glad.c")
 set(LIBS ${LIBS} GLAD)
 
-add_library(Renderdoc "src/Renderdoc.cpp")
-target_compile_definitions(Renderdoc PRIVATE UNICODE _UNICODE)
-set(LIBS ${LIBS} Renderdoc)
-
 macro(makeLink src dest target)
   add_custom_command(TARGET ${target} POST_BUILD COMMAND ${CMAKE_COMMAND} -E create_symlink ${src} ${dest}  DEPENDS  ${dest} COMMENT "mklink ${src} -> ${dest}")
 endmacro()
@@ -283,3 +278,4 @@ foreach(GUEST_ARTICLE ${GUEST_ARTICLES})
 endforeach(GUEST_ARTICLE)
 
 include_directories(${CMAKE_SOURCE_DIR}/includes)
+include(_dev/config.cmake)
