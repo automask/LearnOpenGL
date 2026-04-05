@@ -1,6 +1,6 @@
 # ignores following folders
 bin/
-build/
+build*/
 out/
 .cache/
 
