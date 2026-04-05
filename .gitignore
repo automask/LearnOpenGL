@@ -1,8 +1,10 @@
 # ignores following folders
 bin/
-build/
+build*/
 out/
 .cache/
 
 _deps/
 _dev/
+config.bat
+node_modules
